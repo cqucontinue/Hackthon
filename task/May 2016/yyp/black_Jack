@@ -1,0 +1,359 @@
+<html>
+    <head>
+        <link href="resource\icon.png" rel="shortcut icon" /> 
+        <title>Black Jack</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=gb2312"/>
+    </head>
+    <style type="text/css">
+            table th
+            {
+                    text-align: center;
+                    text-decoration: none;
+                    font-weight: normal;
+                    padding: 3px 6px 3px 6px;
+                    width:200px;
+            } 
+            table td
+            {
+                    vertical-align: center;
+                    text-align: center;
+                    padding: 3px 6px 3px 6px;
+                    margin: 0px;
+            }
+            h3
+            {color:white;
+            padding:25px;
+             }
+    </style> 
+    <body>
+        <!--<background pic>-->
+    <img border="0" src="resource\tableBackground.png" width="100%" height="100%" 
+     style="position: absolute;left:0px;top:0px;z-index: -1"/> 
+    <table width="100%">
+      <tr> 
+          <!--<logo line>-->
+        <td>
+          <div align="center">
+            <img src="resource\Logo.png"  width="1018" height="200"/> 
+          </div>
+        </td>
+      </tr>
+      <!--<tableboard part>-->
+    </table>
+      <hr>
+        <table id="tableboard">
+      <tr>
+                <td id="player1"><img src="resource\dealer.png" width="112px" height="112px"/></td>
+        <td/><td/><td/><td/><td/><td/><td/><td/><td/><td/><td/><td/><td/>
+            </tr>
+      <tr>
+                <td id="player2"><img src="resource\dealer.png" width="112px" height="112px"/></td>
+        <td/><td/><td/><td/><td/><td/><td/><td/><td/><td/><td/><td/><td/>
+            </tr>
+    </table>
+    <hr>
+      <!--<score and button part>-->
+    <table>
+      <tr> 
+          <!--<audio player>-->
+        <td>
+          <div align="left">
+            <audio controls="controls" width="50" height="50" autoplay="true" loop="true"/>
+            <source src="League of Legends - Snowdown 2015.mp3" type="audio/mp3" />
+            <!--<source src="6 INCH.ogg" type="audio/ogg" />-->
+            </audio>
+          </div> 
+        </td>
+          <!--<show scores>-->
+        <td>
+          <div id="score" align="left"></div>
+        </td>
+        <td>
+          <div id="bulletin"><h3>Please make a choice.</h3></div>
+        </td>
+      </tr>
+    </table>
+    <!--<buttons to game>-->
+    <hr>
+    <input type="button" id="hit" value="Hit" onclick="hit();" />
+    <input type="button" id="stand" value="Stand" onclick="stand();" />
+    <!--<input type="button" id="restart" value="Game Again" onclick="location.reload();" />-->
+    <input type="button" id="restart" value="Game Again" onclick="restart();" />
+    <script src="Black_Jack.js"></script>
+    </body>
+</html>
+
+
+
+
+
+var counter = 0; /*times of splitting*/
+var winner = ""; /*winner player1 or player2*/
+var hasStood = false; /*to mark whether player has stood or not*/
+
+/*all cards*/
+var cards = [
+"club01", "club02", "club03", "club04", "club05", "club06", "club07", 
+"club08", "club09", "club10", "club11", "club12", "club13", "diamond01", 
+"diamond02", "diamond03", "diamond04", "diamond05", "diamond06", "diamond07",
+"diamond08", "diamond09", "diamond10", "diamond11", "diamond12", "diamond13", 
+"heart01", "heart02", "heart03", "heart04", "heart05", "heart06", "heart07", 
+"heart08", "heart09", "heart10", "heart11", "heart12", "heart13", 
+"spade01", "spade02", "spade03", "spade04", "spade05", "spade06", "spade07", 
+"spade08", "spade09", "spade10", "spade11", "spade12", "spade13"];
+
+/*generate random number*/
+var getRand = function (begin, end) 
+{
+    return Math.floor(Math.random() * (end - begin)) + begin;
+}
+
+/*shuffle the cards*/
+var rand, tmp;
+for (var i = 0; i < 1000; i++) 
+{
+    rand = getRand(1, 52);
+    tmp = cards[0];
+    cards[0] = cards[rand];
+    cards[rand] = tmp;
+}
+
+/*cards that player1 and player2 have in hand at the beginning*/
+var cards1 = [getNewCard(), getNewCard()];
+var cards2 = [getNewCard(), getNewCard()];
+
+var table = document.getElementById("tableboard");
+table.rows[0].cells[1].innerHTML = "<img src=\"resource\\back.jpg\" />";
+table.rows[0].cells[2].innerHTML = "<img src=\"resource\\" + cards1[1] + ".png\" />";
+table.rows[1].cells[1].innerHTML = "<img src=\"resource\\" + cards2[0] + ".png\" />";
+table.rows[1].cells[2].innerHTML = "<img src=\"resource\\" + cards2[1] + ".png\" />";
+showScore();
+
+/*player2 hits*/
+function hit() 
+{
+    getNewCard("player2");
+    if(checkIfBust("player2")) 
+    {
+        document.getElementById("bulletin").innerHTML = "YOU BUST!";
+        document.getElementById("hit").disabled = true;
+        document.getElementById("stand").disabled = true;
+        winner = "player1"; /*player1 wins when player2 BUST*/
+    }
+    showScore();
+}
+
+/*player2 stands*/
+function stand() 
+{
+    hasStood = true;
+    document.getElementById("hit").disabled = true;
+    document.getElementById("stand").disabled = true;
+    table.rows[0].cells[1].innerHTML = "<img src=\"resource\\" + cards1[0] + ".png\" />";
+    /*player1 hits*/
+    while (calcResult("player1") < 17) 
+    {
+        getNewCard("player1"); /*player1 has to hit when his result is lower than 17*/
+        if(checkIfBust("player1")) 
+        {
+            document.getElementById("bulletin").innerHTML = "DEALER BUST!";
+            document.getElementById("hit").disabled = true;
+            document.getElementById("stand").disabled = true;
+            winner = "player2"; /*player2 wins when player1 BUST*/
+        }
+    }
+    /*high scores party wins if both sides don't BUST*/
+    if (winner == "") 
+    {
+        var result1 = calcResult("player1");
+        var result2 = calcResult("player2");
+        if (result1 == result2) 
+        {
+            document.getElementById("bulletin").innerHTML = "PUSH!";
+        } 
+        else if (result1 > result2) 
+        {
+            document.getElementById("bulletin").innerHTML = "YOU LOSE";
+        } 
+        else if (result1 < result2) 
+        {
+            document.getElementById("bulletin").innerHTML = "YOU WIN!";
+        }
+    }
+    showScore();
+}
+
+/*get a new card*/
+function getNewCard(player) 
+{
+    var card = cards[counter++];
+    if (player == "player1") 
+    {
+        var len = cards1.length;
+        cards1[len] = card;
+        table.rows[0].cells[len + 1].innerHTML = 
+            "<img src=\"resource\\" + cards1[len] + ".png\" />";
+    } 
+    else if (player == "player2") 
+    {
+        var len = cards2.length;
+        cards2[len] = card;
+        table.rows[1].cells[len + 1].innerHTML = 
+            "<img src=\"resource\\" + cards2[len] + ".png\" />";
+    }
+    return card;
+}
+
+/*judge whether it's BUST in present situation*/
+function checkIfBust(player) 
+{
+    var result = 0;
+    if (player == "player1") 
+    {
+        for (var i = 0; i < cards1.length; i++) 
+        {
+            var c = parseInt(cards1[i].substr(cards1[i].length - 2), "10");
+            if (c > 10) 
+            {
+                c = 10;
+            }
+            result += c;
+        }
+        if (result > 21) 
+        {
+            return true;
+        } 
+        else 
+        {
+            return false;
+        }
+    } 
+    else if (player == "player2") 
+    {
+        for (var i = 0; i < cards2.length; i++) 
+        {
+            var c = parseInt(cards2[i].substr(cards2[i].length - 2), "10");
+            if (c > 10) 
+            {
+                c = 10;
+            }
+            result += c;
+        }
+        if (result > 21) 
+        {
+            return true;
+        } 
+        else
+        {
+            return false;
+        }
+    }
+}
+
+/*calcute the result of the players */
+function calcResult(player) 
+{
+    var result = 0;
+    var countOfA = 0;
+    if (player == "player1") 
+    {
+        for (var i = 0; i < cards1.length; i++) 
+        {
+            var c = parseInt(cards1[i].substr(cards1[i].length - 2), "10");
+            if (c > 10) 
+            {
+                c = 10;
+            } 
+            else if (c == 1) 
+            {
+                countOfA++;
+            }
+            result += c;
+        }
+        for (var i = 0; i < countOfA; i++) 
+        {
+            if (result + 10 <= 21) 
+            {
+                result += 10;
+            } 
+            else 
+            {
+                break;
+            }
+        }
+    } 
+    else 
+    {
+        for (var i = 0; i < cards2.length; i++) 
+        {
+            var c = parseInt(cards2[i].substr(cards2[i].length - 2), "10");
+            if (c > 10) 
+            {
+                c = 10;
+            } 
+            else if (c == 1) 
+            {
+                countOfA++;
+            }
+            result += c;
+        }
+        for (var i = 0; i < countOfA; i++) 
+        {
+            if (result + 10 <= 21) 
+            {
+                result += 10;
+            } 
+            else 
+            {
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+function showScore() 
+{
+    var result1 = calcResult("player1");
+    var result2 = calcResult("player2");
+    document.getElementById("score").innerHTML = 
+        "[Computer : You = " + (hasStood == true ? result1 : "?") + " : " + result2 + "]";
+}
+/*restart*/
+function restart() 
+{
+    document.getElementById("hit").disabled = false;
+    document.getElementById("stand").disabled = false;
+    counter = 0; 
+    winner = ""; 
+    hasStood = false; 
+    cards = [
+    "club01", "club02", "club03", "club04", "club05", "club06", "club07", 
+    "club08", "club09", "club10", "club11", "club12", "club13", "diamond01", 
+    "diamond02", "diamond03", "diamond04", "diamond05", "diamond06", "diamond07",
+    "diamond08", "diamond09", "diamond10", "diamond11", "diamond12", "diamond13", 
+    "heart01", "heart02", "heart03", "heart04", "heart05", "heart06", "heart07", 
+    "heart08", "heart09", "heart10", "heart11", "heart12", "heart13", 
+    "spade01", "spade02", "spade03", "spade04", "spade05", "spade06", "spade07", 
+    "spade08", "spade09", "spade10", "spade11", "spade12", "spade13"];
+    for (var i = 0; i < 1000; i++) 
+    {
+        rand = getRand(1, 52);
+        tmp = cards[0];
+        cards[0] = cards[rand];
+        cards[rand] = tmp;
+    }
+    cards1 = [getNewCard(), getNewCard()];
+    cards2 = [getNewCard(), getNewCard()];
+    table.rows[0].cells[1].innerHTML = "<img src=\"resource\\back.jpg\" />";
+    table.rows[0].cells[2].innerHTML = "<img src=\"resource\\" + cards1[1] + ".png\" />";
+    table.rows[1].cells[1].innerHTML = "<img src=\"resource\\" + cards2[0] + ".png\" />";
+    table.rows[1].cells[2].innerHTML = "<img src=\"resource\\" + cards2[1] + ".png\" />";
+    for (var i = 3; i < table.rows[0].cells.length; i++) 
+    {
+        table.rows[0].cells[i].innerHTML = "";
+        table.rows[1].cells[i].innerHTML = "";
+    }
+    showScore();
+    document.getElementById("bulletin").innerHTML = "Please make a choice.";
+}
