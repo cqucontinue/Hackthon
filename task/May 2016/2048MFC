@@ -1,0 +1,556 @@
+
+// 2048MFCView.cpp : CMy2048MFCView 类的实现
+//
+
+#include "stdafx.h"
+#include <mmsystem.h>
+#pragma comment( lib, "Winmm.lib" )
+
+// SHARED_HANDLERS 可以在实现预览、缩略图和搜索筛选器句柄的
+// ATL 项目中进行定义，并允许与该项目共享文档代码。
+#ifndef SHARED_HANDLERS
+#include "2048MFC.h"
+#endif
+
+#include "2048MFCDoc.h"
+#include "2048MFCView.h"
+#include "Map.h"
+
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#endif
+
+Map Map_2048;
+// CMy2048MFCView
+
+IMPLEMENT_DYNCREATE(CMy2048MFCView, CView)
+
+BEGIN_MESSAGE_MAP(CMy2048MFCView, CView)
+	// 标准打印命令
+	ON_COMMAND(ID_FILE_PRINT, &CView::OnFilePrint)
+	ON_COMMAND(ID_FILE_PRINT_DIRECT, &CView::OnFilePrint)
+	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CView::OnFilePrintPreview)
+	ON_WM_KEYDOWN()
+END_MESSAGE_MAP()
+
+// CMy2048MFCView 构造/析构
+
+CMy2048MFCView::CMy2048MFCView()
+{
+	// TODO: 在此处添加构造代码
+
+}
+
+CMy2048MFCView::~CMy2048MFCView()
+{
+}
+
+BOOL CMy2048MFCView::PreCreateWindow(CREATESTRUCT& cs)
+{
+	// TODO: 在此处通过修改
+	//  CREATESTRUCT cs 来修改窗口类或样式
+
+	return CView::PreCreateWindow(cs);
+}
+
+// CMy2048MFCView 绘制
+
+
+void CMy2048MFCView::OnDraw(CDC* pDC)
+{
+	CMy2048MFCDoc* pDoc = GetDocument();
+	ASSERT_VALID(pDoc);
+	if (!pDoc)
+		return;
+	CRect rect;
+	GetClientRect(rect);
+	CBrush Background(RGB(187, 173, 157,0.5));
+	pDC->SelectObject(Background);
+	pDC->Rectangle(rect);
+	int Left   = rect.left;
+	int Right  = rect.right;
+	int Top    = rect.top;
+	int Bottom = rect.bottom;
+	int Width = (Bottom - Top) / 4.5;
+	//客户端操作
+	CBrush Brush_Back(RGB(187, 173, 157));
+	pDC->SelectObject(Brush_Back);
+	pDC->Rectangle(Left, Top, Left + 5.5 * Width, Top + 4 * Width+25);
+	//设置背景
+	CRect Score_Bod;
+	CRect Score_Name;
+	Score_Bod.left   = Left + 4.2 * Width;
+	Score_Bod.top    = Top + 0.8*Width;
+	Score_Bod.right  = Left + 5.4*Width;
+	Score_Bod.bottom = Top + 2 * Width;
+
+	Score_Name.left = Left + 4.2 * Width;
+	Score_Name.top = Top + 0.0*Width;
+	Score_Name.right = Left + 5.4*Width;
+	Score_Name.bottom = Top + 1 * Width;
+	POINT pt;
+	pt.x = 30;
+	pt.y = 30;
+	CFont Font;
+	Font.CreatePointFont(Width*2.5, _T("Hobo Std"));
+	pDC->SelectObject(Font);
+	CBrush Back(RGB(237,200,80));
+	pDC->SelectObject(Back);
+	pDC->RoundRect(&Score_Bod, pt);
+	pDC->SetBkMode(TRANSPARENT);
+	pDC->DrawText(Map_2048.GetS(), Score_Bod, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+	pDC->DrawText(_T("SCORE"), Score_Name, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+	//计分板
+	int arr[4][4] = { 0 };
+	for (int i = 0; i <= 3; i++)
+		for (int j = 0; j <= 3; j++)
+		{
+			//			pDC->Rectangle(Left + 5 * (i + 1) + i* Width, Top + 5 * (j + 1) + Width*j, Left + 5 * (i + 1) + Width*(i + 1), Top + 5 * (j + 1) + Width*(j + 1));
+			CRect Block;
+			CString str;
+			CFont Font;
+			POINT pt;
+			pt.x = 30;
+			pt.y = 30;
+		/*	Block.left = Left + 10 * (i + 1) + i* Width;
+			Block.top = Top + 10 * (j + 1) + Width* j;
+			Block.left = Left + 10 * (i + 1) + Width*(i + 1);
+			Block.bottom = Top + 10 * (j + 1) + Width*(j + 1);*/
+			int B_Left    = Left + 5 * (i + 1) + i* Width;
+			int B_Top     = Top + 5* (j + 1) + Width* j;
+			int B_Right   = Left + 5 * (i + 1) + Width*(i + 1);
+			int B_Bottom  = Top + 5 * (j + 1) + Width*(j + 1);
+			int Num = Map_2048.Pow(Map_2048.Output(j, i));
+			Block.left    = B_Left;
+			Block.top     = B_Top;
+			Block.right   = B_Right;
+			Block.bottom  = B_Bottom;
+			CBrush Brush(RGB(Map_2048.Get_R(Num),Map_2048.Get_G(Num),Map_2048.Get_B(Num)));
+			pDC->SelectObject(&Brush);
+			pDC->RoundRect(&Block,pt);
+			Font.CreatePointFont(Width*2.5, _T("Hobo Std"));
+			pDC->SelectObject(Font);
+			if(Map_2048.Output(j,i)!=0) str.Format(_T("%d"),Map_2048.Output(j,i));
+			else  str.Format(_T(" "), Map_2048.Output(j, i));
+			pDC->SetBkMode(TRANSPARENT);
+			pDC->DrawText(str, Block, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		}
+	if (Map_2048.DeadCheck() == true)
+	{
+		MessageBox(_T("您已死亡！"));
+		MessageBox(_T("哈哈哈哈哈！"));
+		MessageBox(_T("再点一下！"));
+		MessageBox(_T("关不掉吧！！！"));
+		MessageBox(_T("哈哈哈哈！！"));
+		MessageBox(_T("谁让你死了！！！"));
+		MessageBox(_T("辣鸡！都是辣鸡！！！！"));
+		MessageBox(_T("略略略"));
+		exit(0);
+	}
+
+
+
+	// TODO: 在此处为本机数据添加绘制代码
+}
+
+
+// CMy2048MFCView 打印
+
+BOOL CMy2048MFCView::OnPreparePrinting(CPrintInfo* pInfo)
+{
+	// 默认准备
+	return DoPreparePrinting(pInfo);
+}
+
+void CMy2048MFCView::OnBeginPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
+{
+	// TODO: 添加额外的打印前进行的初始化过程
+}
+
+void CMy2048MFCView::OnEndPrinting(CDC* /*pDC*/, CPrintInfo* /*pInfo*/)
+{
+	// TODO: 添加打印后进行的清理过程
+}
+
+
+// CMy2048MFCView 诊断
+
+#ifdef _DEBUG
+void CMy2048MFCView::AssertValid() const
+{
+	CView::AssertValid();
+}
+
+void CMy2048MFCView::Dump(CDumpContext& dc) const
+{
+	CView::Dump(dc);
+}
+
+CMy2048MFCDoc* CMy2048MFCView::GetDocument() const // 非调试版本是内联的
+{
+	ASSERT(m_pDocument->IsKindOf(RUNTIME_CLASS(CMy2048MFCDoc)));
+	return (CMy2048MFCDoc*)m_pDocument;
+}
+#endif //_DEBUG
+
+
+// CMy2048MFCView 消息处理程序
+
+int Key=0;
+void CMy2048MFCView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	CView::OnKeyDown(nChar, nRepCnt, nFlags);
+	if (Key != 0) nChar = Key;
+
+	if (nChar == 37)
+	{
+		Map_2048.Left();
+		Map_2048.Random();
+		PlaySound(_T(".\\res\\Click.wav"), NULL, SND_FILENAME | SND_ASYNC);
+		Sleep(100);
+
+	}
+	if (nChar == 39)
+	{
+		Map_2048.Right();
+		Map_2048.Random();
+		PlaySound(_T(".\\res\\Click.wav"), NULL, SND_FILENAME | SND_ASYNC);
+		Sleep(100);
+	}
+	if (nChar == 38)
+	{
+		Map_2048.Up();
+		Map_2048.Random();
+		PlaySound(_T(".\\res\\Click.wav"), NULL, SND_FILENAME | SND_ASYNC);
+		Sleep(100);
+	}
+	if (nChar == 40)
+	{
+		Map_2048.Down();
+		Map_2048.Random();
+		PlaySound(_T(".\\res\\Click.wav"), NULL, SND_FILENAME | SND_ASYNC);
+		Sleep(100);
+	}
+	Invalidate();
+}
+//Map.h
+#pragma once
+class Map
+{
+public:
+	Map();
+	~Map();
+	void Up();
+	void Down();
+	void Left();
+	void Right();
+	void Random();//用于随机产生2
+	int Output(int i,int j);
+	bool DeadCheck();
+	CString GetS();
+	int Get_R(int i) { return Color_R[i]; }
+	int Get_G(int i) { return Color_G[i]; }
+	int Get_B(int i) { return Color_B[i]; }
+	int Pow(int i);
+	//void Write(CStdioFile myFile);
+	//void Read(CStdioFile myFile);
+	//COLOR GetC();
+private:
+	int arr_real[6][6];
+	int Score;
+	int AddProp;
+	CStdioFile myFile, File;
+	int Color_R[17] = { 204, 238, 237, 242, 245, 246, 246, 237, 237, 237, 237, 43 , 250, 129, 255, 0,128 };
+	int Color_G[17] = { 192, 230, 224, 177, 148, 124, 94 , 207, 204, 200, 197, 132, 56 , 148, 0  , 255, 128 };
+	int Color_B[17] = { 179, 210, 200, 121, 100, 95 , 59 , 114, 97 , 80 , 63 , 98 , 108, 200, 0  , 0  , 0 };
+};
+//Map.cpp
+#include "stdafx.h"
+#include "Map.h"
+#include<time.h>
+Map::Map()
+{
+	int x_0, y_0, x_1, y_1, x_2, y_2;
+	for (int i = 0; i <= 5; i++)
+		for (int j = 0; j <= 5; j++)
+			arr_real[i][j] = 0;
+
+	srand(time(0));
+	while(1)
+	{
+		x_0 = rand() % 4;
+		if (x_0 != 0) break;
+	}
+
+	while (1)
+	{
+		y_0 = rand() % 4;
+		if (y_0 != 0)break;
+	}
+
+	while (1)
+	{
+		x_1 = rand() % 4;
+		if (x_1 != 0&&x_1!=x_0) break;
+	}
+
+	while (1)
+	{
+		y_1 = rand() % 4;
+		if (y_1 != 0&&y_1!=y_0)break;
+	}
+
+	while (1)
+	{
+		x_2 = rand() % 4;
+		if (x_2 != 0 && x_2 != x_0&&x_2 != x_1) break;
+	}
+
+	while (1)
+	{
+		y_2 = rand() % 4;
+		if (y_2 != 0 && y_2 != y_0&&y_2 != y_1)break;
+	}
+
+	arr_real[x_0][y_0] = 2;
+	arr_real[x_1][y_1] = 2;
+	arr_real[x_2][y_2] = 2;
+	AddProp = 40;
+}
+
+Map::~Map()
+{
+}
+
+void Map::Up()
+{
+	int i, j, i1, i2, temp;
+
+	for (j = 1; j <= 4; j++)
+		if ((arr_real[1][j] == arr_real[2][j]) || (arr_real[1][j] == 0))
+		{
+			arr_real[1][j] = arr_real[1][j] + arr_real[2][j]; Score = Score + arr_real[1][j];
+			arr_real[2][j] = 0;
+		}
+
+	for (i = 2; i <= 4; i++)
+		for (j = 1; j <= 4; j++)
+		{
+			if ((arr_real[i][j] == arr_real[i + 1][j]) || (arr_real[i][j] == 0))
+			{
+				arr_real[i][j] = arr_real[i][j] + arr_real[i + 1][j]; Score = Score + arr_real[i][j];
+				arr_real[i + 1][j] = 0;
+			}
+
+		}
+	temp = 0;
+	for (j = 1; j <= 4; j++)
+		if (((arr_real[4][j] == 0) && (arr_real[3][j] == 0) && (arr_real[2][j] == 0) && (arr_real[1][j] != 0)) ||
+			((arr_real[4][j] == 0) && (arr_real[3][j] == 0) && (arr_real[2][j] != 0) && (arr_real[1][j] != 0) && (arr_real[1][j] != arr_real[2][j])) ||
+			((arr_real[4][j] == 0) && (arr_real[3][j] != 0) && (arr_real[2][j] != 0) && (arr_real[1][j] != 0) && (arr_real[1][j] != arr_real[2][j]) && (arr_real[2][j] != arr_real[3][j])) ||
+			((arr_real[4][j] != 0) && (arr_real[3][j] != 0) && (arr_real[2][j] != 0) && (arr_real[1][j] != 0) && (arr_real[1][j] != arr_real[2][j]) && (arr_real[2][j] != arr_real[3][j]) && (arr_real[3][j] != arr_real[4][j])) ||
+				((arr_real[4][j] == 0) && (arr_real[3][j] == 0) && (arr_real[2][j] == 0) && (arr_real[1][j] == 0)))
+				temp = temp + 1;
+	if (temp == 4)
+	{
+		return;
+	}
+	else Up();
+
+}
+
+
+void Map::Down()
+{
+	int i, j, temp;
+	for (j = 1; j <= 4; j++)
+		if ((arr_real[4][j] == arr_real[3][j]) || (arr_real[4][j] == 0))
+		{
+			arr_real[4][j] = arr_real[4][j] + arr_real[3][j]; Score = Score + arr_real[4][j];
+			arr_real[3][j] = 0;
+		}
+	
+	for (i = 3; i >= 1; i--)
+		for (j = 1; j <= 4; j++)
+		{
+			if ((arr_real[i][j] == arr_real[i - 1][j]) || (arr_real[i][j] == 0))
+			{
+				arr_real[i][j] = arr_real[i][j] + arr_real[i - 1][j]; Score = Score + arr_real[i][j];
+				arr_real[i - 1][j] = 0;
+			}
+	
+		}
+	temp = 0;
+	for (j = 1; j <= 4; j++)
+		if (((arr_real[1][j] == 0) && (arr_real[2][j] == 0) && (arr_real[3][j] == 0) && (arr_real[4][j] != 0)) ||
+			((arr_real[1][j] == 0) && (arr_real[2][j] == 0) && (arr_real[3][j] != 0) && (arr_real[4][j] != 0) && (arr_real[4][j] != arr_real[3][j])) ||
+			((arr_real[1][j] == 0) && (arr_real[2][j] != 0) && (arr_real[3][j] != 0) && (arr_real[4][j] != 0) && (arr_real[4][j] != arr_real[3][j]) && (arr_real[3][j] != arr_real[2][j])) ||
+			((arr_real[1][j] != 0) && (arr_real[2][j] != 0) && (arr_real[3][j] != 0) && (arr_real[4][j] != 0) && (arr_real[4][j] != arr_real[3][j]) && (arr_real[3][j] != arr_real[2][j]) && (arr_real[2][j] != arr_real[1][j])) ||
+			((arr_real[1][j] == 0) && (arr_real[2][j] == 0) && (arr_real[3][j] == 0) && (arr_real[4][j] == 0)))
+			temp = temp + 1;
+
+	if (temp == 4)
+	{
+		return;
+	}
+	else Down();
+
+}
+
+void Map::Left()
+{
+	int i, j, temp;
+	for (i = 1; i <= 4; i++)
+		if ((arr_real[i][1] == arr_real[i][2]) || (arr_real[i][1] == 0))
+		{
+			arr_real[i][1] = arr_real[i][1] + arr_real[i][2]; Score = Score + arr_real[i][1];
+			arr_real[i][2] = 0;
+		}
+	
+	for (j = 2; j <= 4; j++)
+		for (i = 1; i <= 4; i++)
+		{
+			if ((arr_real[i][j] == arr_real[i][j + 1]) || (arr_real[i][j] == 0))
+			{
+				arr_real[i][j] = arr_real[i][j] + arr_real[i][j + 1]; Score = Score + arr_real[i][j];
+				arr_real[i][j + 1] = 0;
+			}
+		}
+
+	temp = 0;
+	for (i = 1; i <= 4; i++)
+		if (((arr_real[i][4] == 0) && (arr_real[i][3] == 0) && (arr_real[i][2] == 0) && (arr_real[i][1] != 0)) ||
+			((arr_real[i][4] == 0) && (arr_real[i][3] == 0) && (arr_real[i][2] != 0) && (arr_real[i][1] != 0) && (arr_real[i][1] != arr_real[i][2])) ||
+			((arr_real[i][4] == 0) && (arr_real[i][3] != 0) && (arr_real[i][2] != 0) && (arr_real[i][1] != 0) && (arr_real[i][1] != arr_real[i][2]) && (arr_real[i][2] != arr_real[i][3])) ||
+			((arr_real[i][1] != 0) && (arr_real[i][3] != 0) && (arr_real[i][2] != 0) && (arr_real[i][4] != 0) && (arr_real[i][1] != arr_real[i][2]) && (arr_real[i][2] != arr_real[i][3]) && (arr_real[i][3] != arr_real[i][4])) ||
+			((arr_real[i][1] == 0) && (arr_real[i][2] == 0) && (arr_real[i][3] == 0) && (arr_real[i][4] == 0)))
+			temp = temp + 1;
+
+	if (temp == 4)
+	{
+		return;
+	}
+	else Left();
+
+}
+
+void Map::Right()
+{
+	int i, j, k, temp;
+	for (i = 1; i <= 4; i++)
+		if ((arr_real[i][4] == arr_real[i][3]) || (arr_real[i][4] == 0))
+		{
+			arr_real[i][4] = arr_real[i][4] + arr_real[i][3]; Score = Score + arr_real[i][4];
+			arr_real[i][3] = 0;
+		}
+	
+	for (j = 3; j >= 1; j--)
+		for (i = 1; i <= 4; i++)
+		{
+			if ((arr_real[i][j] == arr_real[i][j - 1]) || (arr_real[i][j] == 0))
+			{
+				arr_real[i][j] = arr_real[i][j] + arr_real[i][j - 1]; Score = Score + arr_real[i][j];
+				arr_real[i][j - 1] = 0;
+			}
+		}
+
+	temp = 0;
+	for (i = 1; i <= 4; i++)
+		if (((arr_real[i][1] == 0) && (arr_real[i][2] == 0) && (arr_real[i][3] == 0) && (arr_real[i][4] != 0)) ||
+			((arr_real[i][1] == 0) && (arr_real[i][2] == 0) && (arr_real[i][3] != 0) && (arr_real[i][4] != 0) && (arr_real[i][3] != arr_real[i][4])) ||
+			((arr_real[i][1] == 0) && (arr_real[i][2] != 0) && (arr_real[i][3] != 0) && (arr_real[i][4] != 0) && (arr_real[i][2] != arr_real[i][3]) && (arr_real[i][3] != arr_real[i][4])) ||
+			((arr_real[i][1] != 0) && (arr_real[i][2] != 0) && (arr_real[i][3] != 0) && (arr_real[i][4] != 0) && (arr_real[i][2] != arr_real[i][3]) && (arr_real[i][3] != arr_real[i][4]) && (arr_real[i][1] != arr_real[i][2])) ||
+			((arr_real[i][1] == 0) && (arr_real[i][2] == 0) && (arr_real[i][3] == 0) && (arr_real[i][4] == 0)))
+			temp = temp + 1;
+
+	if (temp == 4)
+	{
+		return;
+	}
+	else Right();
+}
+
+int Map::Output(int i,int j)
+{
+	return arr_real[i+1][j+1];
+}
+
+void Map::Random()
+{
+	int i, j, k, x, y;
+	if ((arr_real[1][1] != 0) && (arr_real[1][2] != 0) && (arr_real[1][3] != 0) && (arr_real[1][4] != 0) &&
+		(arr_real[2][1] != 0) && (arr_real[2][2] != 0) && (arr_real[2][3] != 0) && (arr_real[2][4] != 0) &&
+		(arr_real[3][1] != 0) && (arr_real[3][2] != 0) && (arr_real[3][3] != 0) && (arr_real[3][4] != 0) &&
+		(arr_real[4][1] != 0) && (arr_real[4][2] != 0) && (arr_real[4][3] != 0) && (arr_real[4][4] != 0))
+		return;
+	else
+	{
+		x = rand() % 4 + 1;
+		y = rand() % 4 + 1;
+		if (arr_real[x][y] == 0)  arr_real[x][y] = 2;
+		else Random();
+	}
+}
+
+bool Map::DeadCheck()
+{
+	int i, j, temp=0;
+	if ((arr_real[1][1] != 0) && (arr_real[1][2] != 0) && (arr_real[1][3] != 0) && (arr_real[1][4] != 0) &&
+		(arr_real[2][1] != 0) && (arr_real[2][2] != 0) && (arr_real[2][3] != 0) && (arr_real[2][4] != 0) &&
+		(arr_real[3][1] != 0) && (arr_real[3][2] != 0) && (arr_real[3][3] != 0) && (arr_real[3][4] != 0) &&
+		(arr_real[4][1] != 0) && (arr_real[4][2] != 0) && (arr_real[4][3] != 0) && (arr_real[4][4] != 0))
+	{
+		for (i = 1; i <= 4; i++)
+			for (j = 1; j <= 4; j++)
+				if ((arr_real[i][j] != arr_real[i + 1][j]) && (arr_real[i][j] != arr_real[i - 1][j]) && (arr_real[i][j] != arr_real[i][j + 1]) && (arr_real[i][j] != arr_real[i][j - 1])) temp = temp + 1;
+		if (temp == 16)  return true;
+		else return false;
+	}
+}
+
+CString Map::GetS()
+{
+	CString str;
+	str.Format(_T("%d"), Score);
+	return str;
+}
+
+int Map::Pow(int i)
+{
+	if (i == 0) return 0;
+	if (i == 2) return 1;
+	if (i == 4) return 2;
+	if (i == 8) return 3;
+	if (i == 16) return 4;
+	if (i == 32) return 5;
+	if (i == 64) return 6;
+	if (i == 128) return 7;
+	if (i == 256) return 8;
+	if (i == 512) return 9;
+	if (i == 1024) return 10;
+	if (i == 2048) return 11;
+	if (i == 4096) return 12;
+	if (i == 8192) return 13;
+	if (i == 16384) return 14;
+	if (i == 32678) return 15;
+	if (i == 65536) return 16;
+}
+
+//void Write(CStdioFile myFile)
+//{
+//	CStdioFile File;
+//	if (myFile.Open(_T(".\\res\\2048.txt"), CFile::modeRead))
+//	{
+//		//读取
+////		myFile.ReadString(str);
+//		myFile.Close();
+//	}
+//	else
+//	{
+//		//创建
+//		File.Open(_T(".\\res\\2048.txt"), CFile::modeWrite | CFile::modeCreate);
+//	//	File.WriteString(sFileName);
+//		File.Close();
+//	}
+//}
